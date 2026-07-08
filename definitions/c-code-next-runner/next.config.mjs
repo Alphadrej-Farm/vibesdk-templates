@@ -1,6 +1,12 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig = {
   /* Simplified Next.js 15.3.1 configuration for stability */
   reactStrictMode: false, // Disable in dev for faster startup
+  outputFileTracingRoot: __dirname,
   
   // Basic compiler optimizations
   compiler: {
@@ -14,10 +20,8 @@ const nextConfig = {
       'lucide-react',
       'framer-motion',
     ],
-    
     // Basic performance features
     optimisticClientCache: true,
-    instrumentationHook: true,
   },
 };
 export default nextConfig;
