@@ -5,30 +5,54 @@
 import { HAS_TEMPLATE_DEMO, TemplateDemo } from '@/components/TemplateDemo'
 import { Toaster } from '@/components/ui/sonner'
 
+const PLACEHOLDER_CSS = `
+  .lv-placeholder {
+    --lv-bg: #ffffff;
+    --lv-text: #0d0f11;
+    --lv-muted: rgba(13, 15, 17, 0.58);
+    --lv-faint: rgba(13, 15, 17, 0.38);
+    --lv-line: rgba(13, 15, 17, 0.1);
+  }
+  @media (prefers-color-scheme: dark) {
+    .lv-placeholder {
+      --lv-bg: #08090a;
+      --lv-text: #f5f5f4;
+      --lv-muted: rgba(245, 245, 244, 0.62);
+      --lv-faint: rgba(245, 245, 244, 0.34);
+      --lv-line: rgba(245, 245, 244, 0.12);
+    }
+  }
+  @keyframes lv-sweep {
+    0% { left: -30%; }
+    100% { left: 110%; }
+  }
+`
+
 export function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#08090a] text-[#f5f5f4] p-6 overflow-hidden relative">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-60"
-        style={{
-          background:
-            'radial-gradient(60% 100% at 50% 0%, rgba(239, 255, 10, 0.07) 0%, rgba(239, 255, 10, 0) 100%)',
-        }}
-      />
+    <div
+      className="lv-placeholder min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden relative"
+      style={{ background: 'var(--lv-bg)', color: 'var(--lv-text)' }}
+    >
+      <style>{PLACEHOLDER_CSS}</style>
 
       <header className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 select-none">
-        <span className="inline-block w-2 h-2 rounded-full bg-[#efff0a]" />
-        <span className="text-sm font-medium tracking-[0.18em] uppercase text-[#f5f5f4]/80">
-          Lumaveno
-        </span>
+        {/* Lumaveno mark - inherits the theme color via currentColor */}
+        <svg viewBox="0 0 32 32" fill="currentColor" fillRule="evenodd" role="img" aria-label="Lumaveno" className="w-5 h-5">
+          <path d="M8.5 3 H23.5 A5.5 5.5 0 0 1 29 8.5 V23.5 A5.5 5.5 0 0 1 23.5 29 H8.5 A5.5 5.5 0 0 1 3 23.5 V8.5 A5.5 5.5 0 0 1 8.5 3 Z M13 9.3 V19.6 A2.4 2.4 0 0 0 15.4 22 H21.7 V18.7 H16.3 V9.3 Z M12.4 22.6 L15.2 19.8 V22 L14.6 22.6 Z" />
+        </svg>
+        <span className="text-sm font-semibold tracking-tight">Lumaveno</span>
       </header>
 
       <div className="text-center space-y-8 relative z-10 w-full animate-fade-in">
         <div className="space-y-4">
           <h1 className="text-4xl md:text-6xl font-display font-semibold text-balance leading-tight">
-            Building your app<span className="text-[#efff0a]">.</span>
+            Building your app.
           </h1>
-          <p className="text-base md:text-lg text-[#f5f5f4]/60 max-w-md mx-auto text-pretty">
+          <p
+            className="text-base md:text-lg max-w-md mx-auto text-pretty"
+            style={{ color: 'var(--lv-muted)' }}
+          >
             The first version is being written right now. This preview updates
             on its own — no need to reload.
           </p>
@@ -39,22 +63,22 @@ export function HomePage() {
             <TemplateDemo />
           </div>
         ) : (
-          <div className="mx-auto w-56 h-px bg-white/10 relative overflow-hidden rounded-full">
+          <div
+            className="mx-auto w-56 h-px relative overflow-hidden rounded-full"
+            style={{ background: 'var(--lv-line)' }}
+          >
             <div
-              className="absolute inset-y-0 w-20 bg-[#efff0a]"
-              style={{ animation: 'placeholder-sweep 1.6s ease-in-out infinite' }}
+              className="absolute inset-y-0 w-20"
+              style={{ background: 'currentColor', animation: 'lv-sweep 1.6s ease-in-out infinite' }}
             />
-            <style>{`
-              @keyframes placeholder-sweep {
-                0% { left: -30%; }
-                100% { left: 110%; }
-              }
-            `}</style>
           </div>
         )}
       </div>
 
-      <footer className="absolute bottom-8 text-center text-sm text-[#f5f5f4]/40">
+      <footer
+        className="absolute bottom-8 text-center text-sm"
+        style={{ color: 'var(--lv-faint)' }}
+      >
         <p>Powered by Lumaveno</p>
       </footer>
 
