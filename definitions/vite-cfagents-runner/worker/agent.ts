@@ -18,18 +18,33 @@ export class ChatAgent extends Agent<Env, ChatState> {
     messages: [],
     sessionId: crypto.randomUUID(),
     isProcessing: false,
-    model: 'google-ai-studio/gemini-2.5-flash'
+    model: 'gpt-4o-mini'
   };
+
+  private initializeChatHandler(): ChatHandler | undefined {
+    const apiKey = this.env.OPENAI_API_KEY?.trim();
+    if (!apiKey) {
+      this.chatHandler = undefined;
+      return undefined;
+    }
+
+    if (!this.chatHandler) {
+      const baseURL = this.env.OPENAI_BASE_URL?.trim() || undefined;
+      this.chatHandler = new ChatHandler(apiKey, this.state.model, baseURL);
+    }
+
+    return this.chatHandler;
+  }
+
+  private isAIConfigured(): boolean {
+    return Boolean(this.env.OPENAI_API_KEY?.trim());
+  }
 
   /**
    * Initialize chat handler when agent starts
    */
   async onStart(): Promise<void> {
-    this.chatHandler = new ChatHandler(
-      this.env.CF_AI_BASE_URL ,
-      this.env.CF_AI_API_KEY,
-      this.state.model
-    );
+    this.initializeChatHandler();
     
     console.log(`ChatAgent ${this.name} initialized with session ${this.state.sessionId}`);
   }
@@ -79,7 +94,8 @@ export class ChatAgent extends Agent<Env, ChatState> {
   private handleGetMessages(): Response {
     return Response.json({ 
       success: true, 
-      data: this.state 
+      data: this.state,
+      aiConfigured: this.isAIConfigured()
     });
   }
 
@@ -97,10 +113,19 @@ export class ChatAgent extends Agent<Env, ChatState> {
       }, { status: 400 });
     }
 
+    const chatHandler = this.initializeChatHandler();
+    if (!chatHandler) {
+      return Response.json({
+        success: false,
+        error: API_RESPONSES.AI_NOT_CONFIGURED,
+        aiConfigured: false
+      }, { status: 503 });
+    }
+
     // Update model if provided
     if (model && model !== this.state.model) {
       this.setState({ ...this.state, model });
-      this.chatHandler?.updateModel(model);
+      chatHandler.updateModel(model);
     }
     
     const userMessage = createMessage('user', message.trim());
@@ -112,11 +137,6 @@ export class ChatAgent extends Agent<Env, ChatState> {
     });
     
     try {
-      // Process message through chat handler
-      if (!this.chatHandler) {
-        throw new Error('Chat handler not initialized');
-      }
-
       if (stream) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
@@ -127,7 +147,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
           try {
             this.setState({ ...this.state, streamingMessage: '' });
             
-            const response = await this.chatHandler!.processMessage(
+            const response = await chatHandler.processMessage(
               message, 
               this.state.messages,
               (chunk: string) => {
@@ -184,7 +204,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
       }
 
       // Non-streaming response
-      const response = await this.chatHandler.processMessage(
+      const response = await chatHandler.processMessage(
         message, 
         this.state.messages
       );
@@ -234,7 +254,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
     const { model } = body;
     
     this.setState({ ...this.state, model });
-    this.chatHandler?.updateModel(model);
+    this.initializeChatHandler()?.updateModel(model);
     
     return Response.json({ 
       success: true, 

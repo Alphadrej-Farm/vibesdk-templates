@@ -3,6 +3,8 @@ import type { Message, ToolCall } from './types';
 import { getToolDefinitions, executeTool } from './tools';
 import { ChatCompletionMessageFunctionToolCall } from 'openai/resources/index.mjs';
 
+export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
 /**
  * ChatHandler - Handles all chat-related operations
  * 
@@ -13,12 +15,11 @@ export class ChatHandler {
   private client: OpenAI;
   private model: string;
 
-  constructor(aiGatewayUrl: string, apiKey: string, model: string) {
+  constructor(apiKey: string, model: string, baseURL: string = DEFAULT_OPENAI_BASE_URL) {
     this.client = new OpenAI({ 
-      baseURL: aiGatewayUrl,
-      apiKey: apiKey
+      apiKey,
+      baseURL
     });
-    console.log("BASE URL", aiGatewayUrl);
     this.model = model;
   }
 
