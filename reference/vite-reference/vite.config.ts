@@ -6,6 +6,8 @@ import { exec } from "node:child_process";
 import pino from "pino";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
+import lumavenoSourceAnchorBabelPlugin from "./source-anchor-babel-plugin";
+
 const logger = pino();
 
 const stripAnsi = (str: string) =>
@@ -102,10 +104,18 @@ function reloadTriggerPlugin() {
 }
 
 // https://vite.dev/config/
-export default ({ mode }: { mode: string }) => {
+export default ({ command, mode }: { command: string; mode: string }) => {
   const env = loadEnv(mode, process.cwd());
+  const projectRoot = process.cwd();
   return defineConfig({
-    plugins: [react(), cloudflare(), watchDependenciesPlugin(), reloadTriggerPlugin()],
+    plugins: [react({
+      babel: {
+        plugins: [[lumavenoSourceAnchorBabelPlugin, {
+          projectRoot,
+          emitRuntimeAnchor: command === "serve",
+        }]],
+      },
+    }), cloudflare(), watchDependenciesPlugin(), reloadTriggerPlugin()],
     build: {
       minify: true,
       sourcemap: "inline", // Use inline source maps for better error reporting

@@ -9,5 +9,6 @@
     "src/lib/errorReporter.ts",
     "src/components/ErrorBoundary.tsx",
     "src/components/RouteErrorBoundary.tsx",
+    "source-anchor-babel-plugin.ts",
     "vite.config.ts"
 ]
