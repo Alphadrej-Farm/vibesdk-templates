@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite --host 0.0.0.0 --port ${PORT:-3000}",
 		"build": "vite build",
+		"test": "bun test source-anchor-babel-plugin.test.ts",
 		"lint": "eslint --cache -f json --quiet .",
 		"preview": "bun run build && vite preview --host 0.0.0.0 --port ${PORT:-4173}",
 		"deploy": "bun run build && wrangler deploy",
@@ -81,6 +82,7 @@
 		"zustand": "^5.0.6"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.28.0",
 		"@cloudflare/vite-plugin": "1.17.1",
 		"@cloudflare/workers-types": "^4.20250424.0",
 		"@eslint/js": "^9.22.0",
