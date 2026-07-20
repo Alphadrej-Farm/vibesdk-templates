@@ -16,7 +16,7 @@ The knobs are named constants in `worker/ai-rate-limit.ts`:
 - `AI_RATE_LIMIT_MAX_REQUESTS` controls requests allowed per IP in that window.
 - `AI_DAILY_REQUEST_LIMIT` controls the app-wide UTC-day request cap; set it to `0` to disable only the daily cap.
 
-Keep a finite per-IP limit for any public deployment. The limiter fails open only when its Durable Object storage is unavailable, logs that backend error, and remains fail-closed for normal over-limit decisions.
+Keep a finite per-IP limit for any public deployment. The limiter fails closed: a normal over-limit decision returns 429, and if its Durable Object backend is unavailable it logs the error and returns 503 rather than allowing the paid call — so a limiter outage cannot be used to bypass the spend cap and drain the owner's key.
 
 There are already several models presupplied with the template along with proper configuration (apikeys and base url). You should develop using them instead of adding mock methods.
 
