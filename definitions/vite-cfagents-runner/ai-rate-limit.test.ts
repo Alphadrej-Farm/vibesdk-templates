@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 import {
   evaluateAiRequest,
   getUtcDay,
+  proxyAiRequestWithRateLimit,
   type AiRateLimits,
 } from "./worker/ai-rate-limit";
 
@@ -68,5 +69,25 @@ describe("AI request limiter", () => {
 
     expect(evaluation.decision.allowed).toBe(true);
     expect(evaluation.dailyRequestCount).toBe(10_001);
+  });
+
+  it("fails closed without invoking the paid agent when the limiter rejects", async () => {
+    let paidAgentInvoked = false;
+
+    const response = await proxyAiRequestWithRateLimit(
+      () => Promise.reject(new Error("simulated Durable Object failure")),
+      async () => {
+        paidAgentInvoked = true;
+        return Response.json({ success: true });
+      },
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: "The AI service is temporarily unavailable because its spending limit could not be verified.",
+      code: "ai_rate_limiter_unavailable",
+    });
+    expect(paidAgentInvoked).toBe(false);
   });
 });

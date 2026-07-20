@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getAgentByName } from 'agents';
 import { ChatAgent } from './agent';
+import { proxyAiRequestWithRateLimit } from './ai-rate-limit';
 import { API_RESPONSES } from './config';
 import { Env, getAppController, registerSession, unregisterSession } from "./core-utils";
 
@@ -15,38 +16,26 @@ export function coreRoutes(app: Hono<{ Bindings: Env }>) {
         const url = new URL(c.req.url);
         url.pathname = url.pathname.replace(`/api/chat/${sessionId}`, '');
 
+        const proxyRequest = async () => {
+            const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId); // Get existing agent or create a new one if it doesn't exist, with sessionId as the name
+            return agent.fetch(new Request(url.toString(), {
+                method: c.req.method,
+                headers: c.req.header(),
+                body: c.req.method === 'GET' || c.req.method === 'DELETE' ? undefined : c.req.raw.body
+            }));
+        };
+
         // Only POST /chat invokes the paid AI provider. Other agent operations are
         // intentionally left unmetered so message reads and session controls work normally.
         if (c.req.method === 'POST' && url.pathname === '/chat') {
             const clientIp = c.req.header('cf-connecting-ip')?.trim() || 'unknown';
-            try {
-                const decision = await getAppController(c.env).checkAiRateLimit(clientIp);
-                if (!decision.allowed) {
-                    const dailyBudgetExceeded = decision.reason === 'daily_budget_exceeded';
-                    return c.json({
-                        success: false,
-                        error: dailyBudgetExceeded
-                            ? 'The daily AI request budget has been reached. Try again after 00:00 UTC.'
-                            : 'Too many AI requests from this IP. Please wait before trying again.',
-                        code: decision.reason,
-                        retryAfterSeconds: decision.retryAfterSeconds,
-                    }, {
-                        status: 429,
-                        headers: { 'Retry-After': String(decision.retryAfterSeconds) },
-                    });
-                }
-            } catch (error) {
-                // Keep chat available during a transient Durable Object outage.
-                console.error('AI rate limiter unavailable; allowing request:', error);
-            }
+            return proxyAiRequestWithRateLimit(
+                () => getAppController(c.env).checkAiRateLimit(clientIp),
+                proxyRequest,
+            );
         }
 
-        const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId); // Get existing agent or create a new one if it doesn't exist, with sessionId as the name
-        return agent.fetch(new Request(url.toString(), {
-            method: c.req.method,
-            headers: c.req.header(),
-            body: c.req.method === 'GET' || c.req.method === 'DELETE' ? undefined : c.req.raw.body
-        }));
+        return proxyRequest();
     
         } catch (error) {
         console.error('Agent routing error:', error);

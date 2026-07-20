@@ -23,6 +23,41 @@ export interface AiRateLimitEvaluation {
   dailyRequestCount: number;
 }
 
+export async function proxyAiRequestWithRateLimit(
+  checkRateLimit: () => Promise<AiRateLimitDecision>,
+  proxyRequest: () => Promise<Response>,
+): Promise<Response> {
+  let decision: AiRateLimitDecision;
+
+  try {
+    decision = await checkRateLimit();
+  } catch (error) {
+    console.error('AI rate limiter unavailable; blocking request:', error);
+    return Response.json({
+      success: false,
+      error: 'The AI service is temporarily unavailable because its spending limit could not be verified.',
+      code: 'ai_rate_limiter_unavailable',
+    }, { status: 503 });
+  }
+
+  if (!decision.allowed) {
+    const dailyBudgetExceeded = decision.reason === 'daily_budget_exceeded';
+    return Response.json({
+      success: false,
+      error: dailyBudgetExceeded
+        ? 'The daily AI request budget has been reached. Try again after 00:00 UTC.'
+        : 'Too many AI requests from this IP. Please wait before trying again.',
+      code: decision.reason,
+      retryAfterSeconds: decision.retryAfterSeconds,
+    }, {
+      status: 429,
+      headers: { 'Retry-After': String(decision.retryAfterSeconds) },
+    });
+  }
+
+  return proxyRequest();
+}
+
 export const DEFAULT_AI_RATE_LIMITS: AiRateLimits = {
   windowMs: AI_RATE_LIMIT_WINDOW_MS,
   maxRequestsPerWindow: AI_RATE_LIMIT_MAX_REQUESTS,
