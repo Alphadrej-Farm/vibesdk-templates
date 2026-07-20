@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getAgentByName } from 'agents';
 import { ChatAgent } from './agent';
+import { proxyAiRequestWithRateLimit } from './ai-rate-limit';
 import { API_RESPONSES } from './config';
 import { Env, getAppController, registerSession, unregisterSession } from "./core-utils";
 
@@ -12,14 +13,29 @@ export function coreRoutes(app: Hono<{ Bindings: Env }>) {
     app.all('/api/chat/:sessionId/*', async (c) => {
         try {
         const sessionId = c.req.param('sessionId');
-        const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId); // Get existing agent or create a new one if it doesn't exist, with sessionId as the name
         const url = new URL(c.req.url);
         url.pathname = url.pathname.replace(`/api/chat/${sessionId}`, '');
-        return agent.fetch(new Request(url.toString(), {
-            method: c.req.method,
-            headers: c.req.header(),
-            body: c.req.method === 'GET' || c.req.method === 'DELETE' ? undefined : c.req.raw.body
-        }));
+
+        const proxyRequest = async () => {
+            const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId); // Get existing agent or create a new one if it doesn't exist, with sessionId as the name
+            return agent.fetch(new Request(url.toString(), {
+                method: c.req.method,
+                headers: c.req.header(),
+                body: c.req.method === 'GET' || c.req.method === 'DELETE' ? undefined : c.req.raw.body
+            }));
+        };
+
+        // Only POST /chat invokes the paid AI provider. Other agent operations are
+        // intentionally left unmetered so message reads and session controls work normally.
+        if (c.req.method === 'POST' && url.pathname === '/chat') {
+            const clientIp = c.req.header('cf-connecting-ip')?.trim() || 'unknown';
+            return proxyAiRequestWithRateLimit(
+                () => getAppController(c.env).checkAiRateLimit(clientIp),
+                proxyRequest,
+            );
+        }
+
+        return proxyRequest();
     
         } catch (error) {
         console.error('Agent routing error:', error);
