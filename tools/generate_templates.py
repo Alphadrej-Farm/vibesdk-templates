@@ -76,7 +76,6 @@ class TemplateGenerator:
             "coverage/**",
             ".nyc_output",
             ".nyc_output/**",
-            "bun.lock*",
             "pnpm-lock.yaml",
             "yarn.lock",
             "package-lock.json",
@@ -438,6 +437,10 @@ class TemplateGenerator:
                 config = yaml.safe_load(f)
 
             template_name = config["name"]
+            if config.get("disabled", False):
+                log_info(f"Skipping disabled template: {template_name}")
+                return True
+
             base_reference = config.get("base_reference", "shared-reference")
             template_specific_files = config.get("template_specific_files")
             excludes = config.get("excludes", [])
@@ -500,17 +503,27 @@ class TemplateGenerator:
         self.build_dir.mkdir(exist_ok=True)
 
         success_count = 0
+        skipped_count = 0
         failure_count = 0
 
         # Find all YAML template definition files
         for yaml_file in self.definitions_dir.glob("*.yaml"):
+            with open(yaml_file, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+
+            if config.get("disabled", False):
+                log_info(f"Skipping disabled template: {yaml_file.stem}")
+                skipped_count += 1
+                continue
+
             if self.generate_template_from_yaml(yaml_file):
                 success_count += 1
             else:
                 failure_count += 1
 
         log_info(
-            f"Template generation complete: {success_count} success, {failure_count} failed"
+            "Template generation complete: "
+            f"{success_count} success, {skipped_count} skipped, {failure_count} failed"
         )
         return failure_count == 0
 
@@ -817,9 +830,10 @@ class TemplateGenerator:
         return not any_failed
 
     def sync_lockfiles_for_template(self, template_name: str) -> bool:
-        """Run `bun install` and sync bun.lock back to definitions/<template>/.
+        """Run `bun install` and sync bun.lock back to the template reference.
 
-        This keeps bun.lock in the repo aligned with the generated package.json.
+        Active templates each own their dependency set in a tracked reference, so the
+        generated lockfile belongs beside that reference package.json.
         """
         template_dir = self.build_dir / template_name
         if not template_dir.exists():
@@ -842,12 +856,16 @@ class TemplateGenerator:
             log_error(f"bun.lock not created for {template_name}: {lock_path}")
             return False
 
-        definitions_dir = self.definitions_dir / template_name
-        if not definitions_dir.exists():
-            # Some templates may not have an overlay directory; create it.
-            definitions_dir.mkdir(parents=True, exist_ok=True)
+        definition_path = self.definitions_dir / f"{template_name}.yaml"
+        try:
+            with open(definition_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+            reference_name = config["base_reference"]
+        except Exception as e:
+            log_error(f"Failed to read base reference for {template_name}: {e}")
+            return False
 
-        dst_lock_path = definitions_dir / "bun.lock"
+        dst_lock_path = self.reference_dir / reference_name / "bun.lock"
         try:
             shutil.copy2(lock_path, dst_lock_path)
             log_info(f"Synced bun.lock to {dst_lock_path}")
@@ -958,7 +976,7 @@ def main() -> None:
     parser.add_argument(
         "--sync-lockfiles",
         action="store_true",
-        help="Run bun install (no scripts) per template and sync bun.lock back into definitions/<template>/",
+        help="Run bun install (no scripts) per template and sync bun.lock back into its reference project",
     )
     parser.add_argument(
         "--lockfile-jobs",

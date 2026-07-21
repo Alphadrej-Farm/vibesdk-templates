@@ -4,32 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <script>
-      const savedTheme = localStorage.getItem('theme');
-      const isDark = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.toggle('dark', isDark);
-    </script>
-    <title>App</title>
+    <meta name="description" content="A React application running on Cloudflare" />
+    <title>Cloudflare App</title>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-        window.addEventListener('error', (event) => {
-          const isOurAppError = event.filename && event.filename.startsWith(window.location.origin);
-          if (isOurAppError) {
-            navigator.sendBeacon('/api/client-errors', JSON.stringify({
-              message: event.message,
-              url: window.location.href,
-              userAgent: navigator.userAgent,
-              source: event.filename,
-              lineno: event.lineno,
-              colno: event.colno,
-              stack: event.error ? event.error.stack : null,
-              timestamp: new Date().toISOString()
-            }));
-          }
-        }, true);
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

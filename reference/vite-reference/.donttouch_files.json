@@ -1,14 +1,10 @@
 [
-    "wrangler.jsonc",
-    "wrangler.toml",
-    "package.json",
-    ".redacted_files.json",
-    ".donttouch_files.json",
-    ".important_files.json",
-    "worker/index.ts",
-    "src/lib/errorReporter.ts",
-    "src/components/ErrorBoundary.tsx",
-    "src/components/RouteErrorBoundary.tsx",
-    "source-anchor-babel-plugin.ts",
-    "vite.config.ts"
+  "package.json",
+  "vite.config.ts",
+  "wrangler.jsonc",
+  "worker/index.ts",
+  "source-anchor-babel-plugin.ts",
+  ".donttouch_files.json",
+  ".important_files.json",
+  ".redacted_files.json"
 ]

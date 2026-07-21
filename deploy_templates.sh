@@ -19,7 +19,7 @@ fi
 
 # 1) Generate templates into build/
 echo "🧱 Generating templates into build/..."
-python3 tools/generate_templates.py --clean --sync-lockfiles
+python3 tools/generate_templates.py --clean
 echo "✅ Templates generated"
 
 # 2) Generate template catalog (generate_template_catalog.py now defaults to ./build)
@@ -32,6 +32,11 @@ echo "📦 Creating optimized zip files for templates..."
 
 # Create zips directory
 mkdir -p zips
+find zips -maxdepth 1 -type f -name '*.zip' -delete
+
+catalog_templates=$(
+  python3 -c 'import json; print("\n".join(item["name"] for item in json.load(open("template_catalog.json", encoding="utf-8"))))'
+)
 
 # Function to create fast-extracting zip files using Python
 create_template_zip() {
@@ -57,27 +62,16 @@ create_template_zip() {
   fi
 }
 
-# 3) Create zip for each valid template directory in build/ in parallel
+# 3) Create zip for each catalog-listed template directory in parallel
 pids=()
-for dir in build/*/; do
-  # Skip non-directories and hidden directories
-  if [[ ! -d "$dir" || "$dir" == .* ]]; then
-    continue
-  fi
-  
-  dir_name=$(basename "$dir")
-  
-  # Skip non-template directories if any appear
-  if [[ "$dir_name" == ".git" || "$dir_name" == "node_modules" || "$dir_name" == ".github" ]]; then
-    continue
-  fi
-  
-  # Check if it's a valid template (has required files)
+for template_name in $catalog_templates; do
+  dir="build/${template_name}/"
   if [[ -f "$dir/package.json" && (-f "$dir/wrangler.jsonc" || -f "$dir/wrangler.toml") && -d "$dir/prompts" ]]; then
     create_template_zip "$dir" &
     pids+=($!)
   else
-    echo "⏭️  Skipping $dir_name (not a valid template)"
+    echo "❌ Catalog template $template_name is missing or invalid in build/"
+    exit 1
   fi
 done
 

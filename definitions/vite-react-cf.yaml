@@ -1,0 +1,5 @@
+name: "vite-react-cf"
+description: "Lean React and Vite application with a Cloudflare Worker and Durable Object"
+base_reference: "vite-reference"
+projectType: app
+disabled: false

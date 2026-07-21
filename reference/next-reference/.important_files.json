@@ -3,11 +3,11 @@
   "components.json",
   "tailwind.config.js",
   "tsconfig.json",
-  "src/App.tsx",
-  "src/index.css",
+  "src/pages/",
+  "src/styles/globals.css",
   "src/lib/utils.ts",
   "src/components/ui/button.tsx",
-  "worker/durableObject.ts",
-  "worker/userRoutes.ts",
+  "next.config.mjs",
+  "open-next.config.ts",
   "wrangler.jsonc"
 ]

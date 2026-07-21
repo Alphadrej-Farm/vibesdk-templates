@@ -1,7 +1,0 @@
-[
-  "package.json",
-  "tsconfig.json",
-  "public/",
-  "worker/",
-  "wrangler.jsonc"
-]
