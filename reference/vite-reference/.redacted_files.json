@@ -1,8 +1,7 @@
 [
-    ".redacted_files.json",
-    ".donttouch_files.json",
-    ".important_files.json",
-    "src/lib/errorReporter.ts",
-    "src/components/ErrorBoundary.tsx",
-    "src/components/RouteErrorBoundary.tsx"
+  ".donttouch_files.json",
+  ".important_files.json",
+  ".redacted_files.json",
+  "vite.config.ts",
+  "worker/index.ts"
 ]

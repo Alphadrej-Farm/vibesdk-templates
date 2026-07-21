@@ -1,0 +1,5 @@
+name: "next-cf"
+description: "Lean Next.js application deployed to Cloudflare with OpenNext"
+base_reference: "next-reference"
+projectType: app
+disabled: false
